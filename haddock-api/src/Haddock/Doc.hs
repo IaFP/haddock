@@ -1,4 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 module Haddock.Doc ( module Documentation.Haddock.Doc
                    , docCodeBlock
                    , combineDocumentation

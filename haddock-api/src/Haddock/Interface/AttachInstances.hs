@@ -1,5 +1,9 @@
 {-# LANGUAGE MagicHash, BangPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Haddock.Interface.AttachInstances

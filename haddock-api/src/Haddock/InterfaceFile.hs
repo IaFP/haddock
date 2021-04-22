@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP, RankNTypes, ScopedTypeVariables #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -----------------------------------------------------------------------------
 -- |
@@ -44,6 +47,9 @@ import Name
 import UniqFM
 import UniqSupply
 import Unique
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@), Total)
+#endif
 
 
 data InterfaceFile = InterfaceFile {
@@ -158,7 +164,11 @@ writeInterfaceFile filename iface = do
 type NameCacheAccessor m = (m NameCache, NameCache -> m ())
 
 
-nameCacheFromGhc :: forall m. (GhcMonad m, MonadIO m) => NameCacheAccessor m
+nameCacheFromGhc :: forall m. (GhcMonad m, MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                              , Total m
+#endif
+                              ) => NameCacheAccessor m
 nameCacheFromGhc = ( read_from_session , write_to_session )
   where
     read_from_session = do
@@ -187,8 +197,11 @@ freshNameCache = ( create_fresh_nc , \_ -> return () )
 -- argument, the getter and setter of the name cache, requires.
 --
 readInterfaceFile :: forall m.
-                     MonadIO m
-                  => NameCacheAccessor m
+                    (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                    , Total m
+#endif
+                    )=> NameCacheAccessor m
                   -> FilePath
                   -> Bool  -- ^ Disable version check. Can cause runtime crash.
                   -> m (Either String InterfaceFile)
@@ -221,9 +234,12 @@ readInterfaceFile (get_name_cache, set_name_cache) filename bypass_checks = do
       return (Right iface)
  where
    with_name_cache :: forall a.
-                      ((forall n b. MonadIO n
-                                => (NameCache -> n (NameCache, b))
-                                -> n b)
+                      ((forall n b.( MonadIO n
+#if MIN_VERSION_base(4,14,0)
+                                   , n @@ b, n @@ (NameCache, b), n @@ (), n @@ NameCache
+#endif
+                                   )=> (NameCache -> n (NameCache, b))
+                                   -> n b)
                        -> m a)
                    -> m a
    with_name_cache act = do

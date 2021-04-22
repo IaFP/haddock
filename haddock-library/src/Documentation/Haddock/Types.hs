@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP, DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 
 -- |
 -- Module      :  Documentation.Haddock.Types

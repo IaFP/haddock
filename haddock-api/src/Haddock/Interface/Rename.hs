@@ -1,5 +1,9 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 ----------------------------------------------------------------------------
 -- |
 -- Module      :  Haddock.Interface.Rename
@@ -32,6 +36,11 @@ import Control.Monad hiding (mapM)
 import Data.List
 import qualified Data.Map as Map hiding ( Map )
 import Prelude hiding (mapM)
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total, type (@@))
+
+instance Total (RnM)
+#endif
 
 renameInterface :: DynFlags -> LinkEnv -> Bool -> Interface -> ErrMsgM Interface
 renameInterface dflags renamingEnv warnings iface =
@@ -173,7 +182,11 @@ renameLDocHsSyn :: LHsDocString -> RnM LHsDocString
 renameLDocHsSyn = return
 
 
-renameDoc :: Traversable t => t Name -> RnM (t DocName)
+renameDoc :: (Traversable t
+#if MIN_VERSION_base(4,14,0)
+             , t @@ RnM DocName
+#endif
+             ) => t Name -> RnM (t DocName)
 renameDoc = traverse rename
 
 renameFnArgsDoc :: FnArgsDoc Name -> RnM (FnArgsDoc DocName)

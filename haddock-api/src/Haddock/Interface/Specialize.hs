@@ -1,8 +1,12 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE RecordWildCards #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, FlexibleInstances #-}
+#endif
 
 module Haddock.Interface.Specialize
     ( specializeInstHead
@@ -49,7 +53,8 @@ specialize specs = go spec_map0
     -- one by one, we should avoid infinite loops.
     spec_map0 = foldr (\(n,t) acc -> Map.insert n (go acc t) acc) mempty specs
 
-{-# SPECIALIZE specialize :: [(Name, HsType GhcRn)] -> HsType GhcRn -> HsType GhcRn #-}
+-- TODO FIXME SPECIALIZE
+-- {-# SPECIALIZE specialize :: [(Name, HsType GhcRn)] -> HsType GhcRn -> HsType GhcRn #-}
 
 -- | Instantiate given binders with corresponding types.
 --

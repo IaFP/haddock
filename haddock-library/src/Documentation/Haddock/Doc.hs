@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Documentation.Haddock.Doc (docParagraph, docAppend,
                                   docConcat, metaDocConcat,

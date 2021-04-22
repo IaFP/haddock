@@ -84,7 +84,8 @@ executable haddock
       bytestring,
       parsec,
       text,
-      transformers
+      transformers, 
+      ghc-prim >= 0.6.1
 
     other-modules:
       Documentation.Haddock.Parser

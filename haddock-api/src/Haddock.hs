@@ -1,6 +1,9 @@
 {-# OPTIONS_GHC -Wwarn #-}
 {-# LANGUAGE CPP, ScopedTypeVariables, OverloadedStrings, Rank2Types #-}
 {-# LANGUAGE LambdaCase #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Haddock
@@ -74,6 +77,9 @@ import Panic (handleGhcException)
 import Module
 import FastString
 import qualified DynamicLoading
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 --------------------------------------------------------------------------------
 -- * Exception handling
@@ -434,7 +440,11 @@ render dflags flags sinceQual qual ifaces installedIfaces extSrcMap = do
 -------------------------------------------------------------------------------
 
 
-readInterfaceFiles :: MonadIO m
+readInterfaceFiles :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                      , Total m
+#endif
+                      )
                    => NameCacheAccessor m
                    -> [(DocPaths, FilePath)]
                    -> Bool
@@ -489,7 +499,11 @@ withGhc' libDir needHieFiles flags ghcActs = runGhc (Just libDir) $ do
             go arg    func True = arg : func True
 
 
-    parseGhcFlags :: MonadIO m => DynFlags -> m DynFlags
+    parseGhcFlags :: (MonadIO m
+#if MIN_VERSION_base(4,14,0)
+                     , Total m
+#endif
+                     ) => DynFlags -> m DynFlags
     parseGhcFlags dynflags = do
       -- TODO: handle warnings?
 

@@ -1,6 +1,9 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns      #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 -- |
 -- Module      :  Documentation.Haddock.Parser
 -- Copyright   :  (c) Mateusz Kowalczyk 2013-2014,

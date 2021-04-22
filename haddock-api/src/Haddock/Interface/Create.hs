@@ -2,6 +2,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wwarn #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Haddock.Interface.Create
@@ -56,6 +59,9 @@ import TcRnTypes
 import FastString ( unpackFS, bytesFS )
 import BasicTypes ( StringLiteral(..), SourceText(..), PromotionFlag(..) )
 import qualified Outputable as O
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 
 -- | Use a 'TypecheckedModule' to produce an 'Interface'.

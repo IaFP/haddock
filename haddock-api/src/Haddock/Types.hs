@@ -4,6 +4,9 @@
 {-# LANGUAGE UndecidableInstances #-} -- Note [Pass sensitive types]
 {-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 
 -----------------------------------------------------------------------------
 -- |
@@ -43,6 +46,9 @@ import DynFlags (Language)
 import qualified GHC.LanguageExtensions as LangExt
 import OccName
 import Outputable
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (Total)
+#endif
 
 -----------------------------------------------------------------------------
 -- * Convenient synonyms
@@ -594,7 +600,9 @@ data SinceQual
 
 type ErrMsg = String
 newtype ErrMsgM a = Writer { runWriter :: (a, [ErrMsg]) }
-
+#if MIN_VERSION_base(4,14,0)
+instance Total ErrMsgM
+#endif
 
 instance Functor ErrMsgM where
         fmap f (Writer (a, msgs)) = Writer (f a, msgs)
@@ -636,6 +644,9 @@ throwE str = throw (HaddockException str)
 -- but we can't just use @GhcT ErrMsgM@ because GhcT requires the
 -- transformed monad to be MonadIO.
 newtype ErrMsgGhc a = WriterGhc { runWriterGhc :: Ghc (a, [ErrMsg]) }
+#if MIN_VERSION_base(4,14,0)
+instance Total ErrMsgGhc
+#endif
 --instance MonadIO ErrMsgGhc where
 --  liftIO = WriterGhc . fmap (\a->(a,[])) liftIO
 --er, implementing GhcMonad involves annoying ExceptionMonad and

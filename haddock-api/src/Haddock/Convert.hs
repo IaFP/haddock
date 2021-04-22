@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP, PatternGuards, TypeFamilies #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Haddock.Convert

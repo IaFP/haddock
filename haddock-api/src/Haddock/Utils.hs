@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Haddock.Utils
@@ -83,6 +86,9 @@ import System.IO.Unsafe ( unsafePerformIO )
 import qualified System.FilePath.Posix as HtmlPath
 import Distribution.Verbosity
 import Distribution.ReadE
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 #ifndef mingw32_HOST_OS
 import qualified System.Posix.Internals
@@ -406,7 +412,11 @@ writeUtf8File filepath contents = withFile filepath WriteMode $ \h -> do
     hSetEncoding h utf8
     hPutStr h contents
 
-withTempDir :: (ExceptionMonad m) => FilePath -> m a -> m a
+withTempDir :: (ExceptionMonad m
+#if MIN_VERSION_base(4,14,0)
+               , m @@ ()
+#endif
+               ) => FilePath -> m a -> m a
 withTempDir dir = gbracket_ (liftIO $ createDirectory dir)
                             (liftIO $ removeDirectoryRecursive dir)
 

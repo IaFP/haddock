@@ -1,7 +1,11 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators, TypeFamilies #-}
+#endif
 
 module Haddock.Syb
     ( everything, everythingButType, everythingWithState
@@ -15,6 +19,9 @@ import Data.Data
 import Control.Applicative
 import Data.Maybe
 import Data.Foldable
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types(type (@@))
+#endif
 
 -- | Returns true if a == t.
 -- requires AllowAmbiguousTypes
@@ -92,7 +99,11 @@ mkT f = case cast f of
     Nothing -> id
 
 -- | Combine two queries into one using alternative combinator.
-combine :: Alternative f => (forall a. Data a => a -> f r)
-                         -> (forall a. Data a => a -> f r)
-                         -> (forall a. Data a => a -> f r)
+combine :: (Alternative f
+#if MIN_VERSION_base(4,14,0)
+           , f @@ r
+#endif
+           ) => (forall a. Data a => a -> f r)
+             -> (forall a. Data a => a -> f r)
+             -> (forall a. Data a => a -> f r)
 combine f g x = f x <|> g x

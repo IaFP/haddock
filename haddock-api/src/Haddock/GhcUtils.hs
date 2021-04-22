@@ -3,6 +3,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_HADDOCK hide #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 810
+{-# LANGUAGE PartialTypeConstructors, TypeOperators #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Haddock.GhcUtils
@@ -48,6 +52,9 @@ import qualified StringBuffer             as S
 import           Data.ByteString ( ByteString )
 import qualified Data.ByteString          as BS
 import qualified Data.ByteString.Internal as BS
+#if MIN_VERSION_base(4,14,0)
+import GHC.Types (type (@@))
+#endif
 
 moduleString :: Module -> String
 moduleString = moduleNameString . moduleName
@@ -440,7 +447,11 @@ gbracket_ :: ExceptionMonad m => m a -> m b -> m c -> m c
 gbracket_ before_ after thing = gbracket before_ (const after) (const thing)
 
 -- Extract the minimal complete definition of a Name, if one exists
-minimalDef :: GhcMonad m => Name -> m (Maybe ClassMinimalDef)
+minimalDef :: (GhcMonad m
+#if MIN_VERSION_base(4,14,0)
+              , m @@ HscEnv, m @@ Maybe TyThing
+#endif
+              ) => Name -> m (Maybe ClassMinimalDef)
 minimalDef n = do
   mty <- lookupGlobalName n
   case mty of
