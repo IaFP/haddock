@@ -1,6 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 ----------------------------------------------------------------------------
 -- |
 -- Module      :  Haddock.Interface.Rename
@@ -35,7 +39,9 @@ import qualified Data.Set as Set
 import Prelude hiding (mapM)
 import GHC.HsToCore.Docs
 import GHC.Types.Basic ( TopLevelFlag(..) )
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 -- | Traverse docstrings and ASTs in the Haddock interface, renaming 'Name' to
 -- 'DocName'.
 --
@@ -195,7 +201,11 @@ renameLDocHsSyn :: LHsDocString -> RnM LHsDocString
 renameLDocHsSyn = return
 
 
-renameDoc :: Traversable t => t (Wrap Name) -> RnM (t (Wrap DocName))
+renameDoc :: (
+#if MIN_VERSION_base(4,16,0)
+      t @ RnM (Wrap DocName),
+#endif
+      Traversable t) => t (Wrap Name) -> RnM (t (Wrap DocName))
 renameDoc = traverse (traverse rename)
 
 renameFnArgsDoc :: FnArgsDoc Name -> RnM (FnArgsDoc DocName)

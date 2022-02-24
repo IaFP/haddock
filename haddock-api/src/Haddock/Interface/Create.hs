@@ -13,6 +13,9 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wwarn #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Haddock.Interface.Create
@@ -79,8 +82,15 @@ import GHC.Unit.State (PackageName (..), UnitState, lookupModuleInAllUnits)
 import qualified GHC.Utils.Outputable as O
 import GHC.Utils.Panic (pprPanic)
 import GHC.Unit.Module.Warnings
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@), Total)
+#endif
 
-newtype IfEnv m = IfEnv
+newtype
+#if MIN_VERSION_base(4,16,0)
+    m @ (Maybe TyThing) => 
+#endif
+    IfEnv m = IfEnv
   {
     -- | Lookup names in the enviroment.
     ife_lookup_name :: Name -> m (Maybe TyThing)
@@ -93,15 +103,39 @@ newtype IfEnv m = IfEnv
 -- In the past `createInterface` was running in the `Ghc` monad but proved hard
 -- to sustain as soon as we moved over for Haddock to be a plugin. Also abstracting
 -- over the Ghc specific clarifies where side effects happen.
-newtype IfM m a = IfM { unIfM :: ReaderT (IfEnv m) (WriterT [ErrMsg] m) a }
+newtype
+#if MIN_VERSION_base(4,16,0)
+  (m @ a, m @ (a, [ErrMsg])) =>
+#endif
+   IfM m a = IfM { unIfM :: ReaderT (IfEnv m) (WriterT [ErrMsg] m) a }
 
 
 deriving newtype instance Functor m => Functor (IfM m)
-deriving newtype instance Applicative m => Applicative (IfM m)
-deriving newtype instance Monad m => Monad (IfM m)
-deriving newtype instance MonadIO m => MonadIO (IfM m)
-deriving newtype instance Monad m => MonadReader (IfEnv m) (IfM m)
-deriving newtype instance Monad m => MonadWriter [ErrMsg] (IfM m)
+deriving newtype instance (
+#if MIN_VERSION_base(4,16,0)
+                           Total m,
+#endif
+                           Applicative m) => Applicative (IfM m)
+deriving newtype instance (
+#if MIN_VERSION_base(4,16,0)
+                           Total m,
+#endif
+                           Monad m) => Monad (IfM m)
+deriving newtype instance (
+#if MIN_VERSION_base(4,16,0)
+                           Total m,
+#endif
+                           MonadIO m) => MonadIO (IfM m)
+deriving newtype instance (
+#if MIN_VERSION_base(4,16,0)
+                           Total m,
+#endif
+                           Monad m) => MonadReader (IfEnv m) (IfM m)
+deriving newtype instance (
+#if MIN_VERSION_base(4,16,0)
+                           Total m,
+#endif
+                          Monad m) => MonadWriter [ErrMsg] (IfM m)
 
 
 -- | Run an `IfM` action.
@@ -122,19 +156,31 @@ runIfM lookup_name action = do
   runWriterT (runReaderT (unIfM action) if_env)
 
 
-liftErrMsg :: Monad m => ErrMsgM a -> IfM m a
+liftErrMsg :: (
+#if MIN_VERSION_base(4,16,0)
+   Total m,
+#endif
+  Monad m) => ErrMsgM a -> IfM m a
 liftErrMsg action = do
   writer (runWriter action)
 
 
-lookupName :: Monad m => Name -> IfM m (Maybe TyThing)
+lookupName :: (
+#if MIN_VERSION_base(4,16,0)
+   Total m,
+#endif
+  Monad m) => Name -> IfM m (Maybe TyThing)
 lookupName name = IfM $ do
   lookup_name <- asks ife_lookup_name
   lift $ lift (lookup_name name)
 
 
 createInterface1
-  :: MonadIO m
+  :: (
+#if MIN_VERSION_base(4,16,0)
+   Total m,
+#endif
+    MonadIO m)
   => [Flag]
   -> UnitState
   -> ModSummary
@@ -603,7 +649,11 @@ mkFixMap group_ =
 -- We create the export items even if the module is hidden, since they
 -- might be useful when creating the export items for other modules.
 mkExportItems
-  :: Monad m
+  :: (
+#if MIN_VERSION_base(4,16,0)
+   Total m,
+#endif
+    Monad m)
   => Bool               -- is it a signature
   -> IfaceMap
   -> Maybe Package      -- this package
@@ -665,7 +715,11 @@ mkExportItems
 
 
 -- Extract the minimal complete definition of a Name, if one exists
-minimalDef :: Monad m => Name -> IfM m (Maybe ClassMinimalDef)
+minimalDef :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+    Monad m) => Name -> IfM m (Maybe ClassMinimalDef)
 minimalDef n = do
   mty <- lookupName n
   case mty of
@@ -677,7 +731,11 @@ minimalDef n = do
 
 availExportItem
   :: forall m
-  .  Monad m
+  .  (
+#if MIN_VERSION_base(4,16,0)
+   Total m,
+#endif
+    Monad m)
   => Bool               -- is it a signature
   -> IfaceMap
   -> Module             -- this module
@@ -820,7 +878,11 @@ availExportItem is_sig modMap thisMod semMod warnings exportedNames
     exportedNameSet = mkNameSet exportedNames
     isExported n = elemNameSet n exportedNameSet
 
-    findDecl :: AvailInfo -> IfM m ([LHsDecl GhcRn], (DocForDecl Name, [(Name, DocForDecl Name)]))
+    findDecl :: 
+#if MIN_VERSION_base(4,16,0)
+      Total m => 
+#endif
+      AvailInfo -> IfM m ([LHsDecl GhcRn], (DocForDecl Name, [(Name, DocForDecl Name)]))
     findDecl avail
       | m == semMod =
           case M.lookup n declMap of
@@ -849,7 +911,11 @@ availExportItem is_sig modMap thisMod semMod warnings exportedNames
         n = availName avail
         m = nameModule n
 
-    findBundledPatterns :: AvailInfo -> IfM m [(HsDecl GhcRn, DocForDecl Name)]
+    findBundledPatterns ::
+#if MIN_VERSION_base(4,16,0)
+      Total m => 
+#endif
+      AvailInfo -> IfM m [(HsDecl GhcRn, DocForDecl Name)]
     findBundledPatterns avail = do
       patsyns <- for constructor_names $ \name -> do
         mtyThing <- lookupName name
@@ -882,7 +948,11 @@ semToIdMod this_uid m
     | Module.isHoleModule m = mkModule this_uid (moduleName m)
     | otherwise             = m
 
-hiDecl :: Monad m => DynFlags -> Name -> IfM m (Maybe (LHsDecl GhcRn))
+hiDecl :: (
+#if MIN_VERSION_base(4,16,0)
+   Total m,
+#endif
+  Monad m) => DynFlags -> Name -> IfM m (Maybe (LHsDecl GhcRn))
 hiDecl dflags t = do
   mayTyThing <- lookupName t
   case mayTyThing of
@@ -904,7 +974,11 @@ hiDecl dflags t = do
 -- have a meaningful 'SrcSpan'. So we pass down 'SrcSpan' for the
 -- declaration and use it instead - 'nLoc' here.
 hiValExportItem
-  :: Monad m => DynFlags -> Name -> SrcSpan -> DocForDecl Name -> Bool
+  :: (
+#if MIN_VERSION_base(4,16,0)
+   Total m,
+#endif
+    Monad m) => DynFlags -> Name -> SrcSpan -> DocForDecl Name -> Bool
   -> Maybe Fixity -> IfM m (ExportItem GhcRn)
 hiValExportItem dflags name nLoc doc splice fixity = do
   mayDecl <- hiDecl dflags name
@@ -936,7 +1010,11 @@ lookupDocs avail warnings docMap argMap =
 -- | Export the given module as `ExportModule`. We are not concerned with the
 -- single export items of the given module.
 moduleExport
-  :: Monad m
+  :: (
+#if MIN_VERSION_base(4,16,0)
+   Total m,
+#endif
+    Monad m)
   => Module           -- ^ Module A (identity, NOT semantic)
   -> DynFlags         -- ^ The flags used when typechecking A
   -> IfaceMap         -- ^ Already created interfaces
@@ -984,7 +1062,11 @@ moduleExport thisMod dflags ifaceMap instIfaceMap expMod =
 -- zip through the renamed declarations.
 
 fullModuleContents
-  :: Monad m
+  :: (
+#if MIN_VERSION_base(4,16,0)
+    Total m,
+#endif
+    Monad m)
   => Bool               -- is it a signature
   -> IfaceMap
   -> Maybe Package      -- this package

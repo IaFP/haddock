@@ -1,5 +1,8 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE GADTs #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
 -----------------------------------------------------------------------------
@@ -56,7 +59,10 @@ import Haddock.Types
 
 import GHC
 import GHC.Types.Name
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
+    
 import Control.Monad.IO.Class ( MonadIO(..) )
 import Control.Monad.Catch ( MonadMask, bracket_ )
 import Data.Char ( isAlpha, isAlphaNum, isAscii, ord, chr )
@@ -279,7 +285,11 @@ writeUtf8File filepath contents = withFile filepath WriteMode $ \h -> do
     hSetEncoding h utf8
     hPutStr h contents
 
-withTempDir :: (MonadIO m, MonadMask m) => FilePath -> m a -> m a
+withTempDir :: (
+#if MIN_VERSION_base(4,16,0)
+    m @ (), m @ (a, ()),
+#endif
+      MonadIO m, MonadMask m) => FilePath -> m a -> m a
 withTempDir dir = bracket_ (liftIO $ createDirectory dir)
                            (liftIO $ removeDirectoryRecursive dir)
 

@@ -5,6 +5,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections       #-}
 {-# OPTIONS_GHC -Wwarn           #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Haddock
@@ -82,7 +86,9 @@ import GHC.Unit
 import GHC.Unit.State (lookupUnit)
 import GHC.Utils.Panic (handleGhcException)
 import GHC.Data.FastString
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
 --------------------------------------------------------------------------------
 -- * Exception handling
 --------------------------------------------------------------------------------
@@ -535,7 +541,11 @@ withGhc' libDir needHieFiles flags ghcActs = runGhc (Just libDir) $ do
             go arg    func True = arg : func True
 
 
-    parseGhcFlags :: MonadIO m => Logger -> DynFlags -> m DynFlags
+    parseGhcFlags :: (
+#if MIN_VERSION_base(4,16,0)
+      Total m,
+#endif
+      MonadIO m) => Logger -> DynFlags -> m DynFlags
     parseGhcFlags logger dynflags = do
       -- TODO: handle warnings?
 

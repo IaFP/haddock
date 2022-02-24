@@ -66,7 +66,7 @@ executable haddock
 
   -- haddock typically only supports a single GHC major version
   build-depends:
-    base ^>= 4.13.0.0 || ^>= 4.14.0.0 || ^>= 4.15.0.0 || ^>= 4.16.0.0
+    base ^>= 4.13.0.0 || ^>= 4.14.0.0 || ^>= 4.15.0.0 || ^>= 4.16.0.0                                   
 
   if flag(in-ghc-tree)
     hs-source-dirs: haddock-api/src,  haddock-library/src
@@ -87,6 +87,8 @@ executable haddock
       text,
       transformers,
       mtl
+  if impl(ghc>=9.3)
+    build-depends: ghc-prim
 
     other-modules:
       CompatPrelude
@@ -149,6 +151,9 @@ executable haddock
     -- in order for haddock's advertised version number to have proper meaning,
     -- we pin down to a single haddock-api version.
     build-depends:  haddock-api == 2.24.0
+  if impl(ghc>=9.3)
+    build-depends: ghc-prim >= 0.8
+    
 
 test-suite html-test
   type:             exitcode-stdio-1.0

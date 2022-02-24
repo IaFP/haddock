@@ -4,6 +4,10 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
 -- |
 -- Module      :  Documentation.Haddock.Parser.Monad
 -- Copyright   :  (c) Alec Theriault 2018-2019,
@@ -39,7 +43,10 @@ import           Documentation.Haddock.Types ( Version )
 
 import           Prelude hiding (takeWhile)
 import           CompatPrelude
-
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (Total)
+#endif
+    
 -- | The only bit of information we really care about truding along with us
 -- through parsing is the version attached to a @\@since@ annotation - if
 -- the doc even contained one.
@@ -80,7 +87,11 @@ peekChar = headOpt . stateInput <$> getParserState
 -- Equivalent to @Parsec.lookAhead Parsec.anyChar@, but more efficient.
 peekChar' :: Parser Char
 peekChar' = headFail . stateInput =<< getParserState
-  where headFail t | T.null t = Parsec.parserFail "peekChar': reached EOF"
+  where
+#if MIN_VERSION_base(4,16,0)
+    headFail :: Total m => Text -> Parsec.ParsecT s u m Char
+#endif
+    headFail t | T.null t = Parsec.parserFail "peekChar': reached EOF"
                    | otherwise = App.pure (T.head t)
 {-# INLINE peekChar' #-}
 
