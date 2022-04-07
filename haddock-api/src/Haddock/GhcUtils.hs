@@ -7,6 +7,11 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -Wno-incomplete-record-updates #-}
 {-# OPTIONS_HADDOCK hide #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators #-}
+#endif
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Haddock.GhcUtils
@@ -52,6 +57,9 @@ import qualified GHC.Data.StringBuffer             as S
 import           Data.ByteString ( ByteString )
 import qualified Data.ByteString          as BS
 import qualified Data.ByteString.Internal as BS
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 import GHC.HsToCore.Docs
 
@@ -114,7 +122,11 @@ pretty = showPpr
 -- instantiated at DocNameI instead of (GhcPass _).
 
 -- | Like 'hsTyVarName' from GHC API, but not instantiated at (GhcPass _)
-hsTyVarBndrName :: forall flag n. (XXTyVarBndr n ~ NoExtCon, UnXRec n)
+hsTyVarBndrName :: forall flag n. (
+#if MIN_VERSION_base(4,16,0)
+ WFT (XRec n (IdP n)),
+#endif
+  XXTyVarBndr n ~ NoExtCon, UnXRec n)
                 => HsTyVarBndr flag n -> IdP n
 hsTyVarBndrName (UserTyVar _ _ name) = unXRec @n name
 hsTyVarBndrName (KindedTyVar _ _ name _) = unXRec @n name
@@ -331,7 +343,21 @@ data Precedence
 --
 -- We cannot add parens that may be required by fixities because we do not have
 -- any fixity information to work with in the first place :(.
-reparenTypePrec :: forall a. (XRecCond a)
+reparenTypePrec :: forall a. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec a (HsType a)),
+  WFT (Anno (HsType a)),
+  WFT (Anno [XRec a (HsType a)]),
+  WFT (XRec a [XRec a (HsType a)]),
+  WFT (Anno (HsTyVarBndr Specificity a)),
+  WFT (XRec a (HsTyVarBndr Specificity a)),
+  WFT (Anno (HsTyVarBndr () a)),
+  WFT (XRec a (HsTyVarBndr () a)),
+  WFT (Anno (ConDeclField a)),
+  WFT (XRec a (ConDeclField a)),
+  WFT (XParTy a),
+#endif
+  XRecCond a)
                 => Precedence -> HsType a -> HsType a
 reparenTypePrec = go
   where
@@ -388,22 +414,80 @@ reparenTypePrec = go
 
 
 -- | Add parenthesis around the types in a 'HsType' (see 'reparenTypePrec')
-reparenType :: XRecCond a => HsType a -> HsType a
+reparenType :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec a (HsType a)),
+  WFT (Anno (HsTyVarBndr Specificity a)),
+  WFT (XRec a (HsTyVarBndr Specificity a)),
+  WFT (Anno (HsTyVarBndr () a)),
+  WFT (XRec a (HsTyVarBndr () a)),
+  WFT (Anno (HsType a)),
+  WFT (Anno [XRec a (HsType a)]),
+  WFT (XRec a [XRec a (HsType a)]),
+  WFT (Anno (ConDeclField a)),
+  WFT (XRec a (ConDeclField a)),
+  WFT (XParTy a),
+#endif
+  XRecCond a) => HsType a -> HsType a
 reparenType = reparenTypePrec PREC_TOP
 
 -- | Add parenthesis around the types in a 'LHsType' (see 'reparenTypePrec')
-reparenLType :: forall a. (XRecCond a) => LHsType a -> LHsType a
+reparenLType :: forall a. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec a (HsType a)),
+  WFT (Anno (HsType a)),
+  WFT (Anno [XRec a (HsType a)]),
+  WFT (XRec a [XRec a (HsType a)]),
+  WFT (Anno (HsTyVarBndr Specificity a)),
+  WFT (XRec a (HsTyVarBndr Specificity a)),
+  WFT (Anno (HsTyVarBndr () a)),
+  WFT (XRec a (HsTyVarBndr () a)),
+  WFT (Anno (ConDeclField a)),
+  WFT (XRec a (ConDeclField a)),
+  WFT (XParTy a),
+#endif
+  XRecCond a) => LHsType a -> LHsType a
 reparenLType = mapXRec @a reparenType
 
 -- | Add parentheses around the types in an 'HsSigType' (see 'reparenTypePrec')
-reparenSigType :: forall a. ( XRecCond a )
+reparenSigType :: forall a. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec a (HsType a)),
+  WFT (Anno (HsType a)),
+  WFT (Anno (HsTyVarBndr Specificity a)),
+  WFT (XRec a (HsTyVarBndr Specificity a)),
+  WFT (Anno (HsTyVarBndr () a)),
+  WFT (XRec a (HsTyVarBndr () a)),
+  WFT (Anno [XRec a (HsType a)]),
+  WFT (XRec a [XRec a (HsType a)]),
+  WFT (Anno (ConDeclField a)),
+  WFT (XRec a (ConDeclField a)),
+  WFT (XParTy a),
+#endif
+  XRecCond a )
                => HsSigType a -> HsSigType a
 reparenSigType (HsSig x bndrs body) =
   HsSig x (reparenOuterTyVarBndrs bndrs) (reparenLType body)
 reparenSigType v@XHsSigType{} = v
 
 -- | Add parentheses around the types in an 'HsOuterTyVarBndrs' (see 'reparenTypePrec')
-reparenOuterTyVarBndrs :: forall flag a. ( XRecCond a )
+reparenOuterTyVarBndrs :: forall flag a. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec a (HsType a)),
+  WFT (Anno (HsType a)),
+  WFT (Anno (HsTyVarBndr flag a)),
+  WFT (XRec a (HsTyVarBndr flag a)),
+  WFT (Anno [XRec a (HsType a)]),
+  WFT (XRec a [XRec a (HsType a)]),
+  WFT (Anno (HsTyVarBndr Specificity a)),
+  WFT (XRec a (HsTyVarBndr Specificity a)),
+  WFT (Anno (HsTyVarBndr () a)),
+  WFT (XRec a (HsTyVarBndr () a)),
+  WFT (Anno (ConDeclField a)),
+  WFT (XRec a (ConDeclField a)),
+  WFT (XParTy a),
+#endif
+  XRecCond a )
                        => HsOuterTyVarBndrs flag a -> HsOuterTyVarBndrs flag a
 reparenOuterTyVarBndrs imp@HsOuterImplicit{} = imp
 reparenOuterTyVarBndrs (HsOuterExplicit x exp_bndrs) =
@@ -411,7 +495,21 @@ reparenOuterTyVarBndrs (HsOuterExplicit x exp_bndrs) =
 reparenOuterTyVarBndrs v@XHsOuterTyVarBndrs{} = v
 
 -- | Add parentheses around the types in an 'HsForAllTelescope' (see 'reparenTypePrec')
-reparenHsForAllTelescope :: forall a. (XRecCond a )
+reparenHsForAllTelescope :: forall a. (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec a (HsType a)),
+  WFT (Anno (HsType a)),
+  WFT (Anno (HsTyVarBndr Specificity a)),
+  WFT (XRec a (HsTyVarBndr Specificity a)),
+  WFT (Anno (HsTyVarBndr () a)),
+  WFT (XRec a (HsTyVarBndr () a)),
+  WFT (Anno [XRec a (HsType a)]),
+  WFT (XRec a [XRec a (HsType a)]),
+  WFT (Anno (ConDeclField a)),
+  WFT (XRec a (ConDeclField a)),
+  WFT (XParTy a),
+#endif
+  XRecCond a )
                          => HsForAllTelescope a -> HsForAllTelescope a
 reparenHsForAllTelescope (HsForAllVis x bndrs) =
   HsForAllVis x (map (mapXRec @a reparenTyVar) bndrs)
@@ -420,13 +518,41 @@ reparenHsForAllTelescope (HsForAllInvis x bndrs) =
 reparenHsForAllTelescope v@XHsForAllTelescope{} = v
 
 -- | Add parenthesis around the types in a 'HsTyVarBndr' (see 'reparenTypePrec')
-reparenTyVar :: (XRecCond a) => HsTyVarBndr flag a -> HsTyVarBndr flag a
+reparenTyVar :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec a (HsType a)),
+  WFT (Anno (HsType a)),
+  WFT (Anno (HsTyVarBndr Specificity a)),
+  WFT (XRec a (HsTyVarBndr Specificity a)),
+  WFT (Anno (HsTyVarBndr () a)),
+  WFT (XRec a (HsTyVarBndr () a)),
+  WFT (Anno [XRec a (HsType a)]),
+  WFT (XRec a [XRec a (HsType a)]),
+  WFT (Anno (ConDeclField a)),
+  WFT (XRec a (ConDeclField a)),
+  WFT (XParTy a),
+#endif
+  XRecCond a) => HsTyVarBndr flag a -> HsTyVarBndr flag a
 reparenTyVar (UserTyVar x flag n) = UserTyVar x flag n
 reparenTyVar (KindedTyVar x flag n kind) = KindedTyVar x flag n (reparenLType kind)
 reparenTyVar v@XTyVarBndr{} = v
 
 -- | Add parenthesis around the types in a 'ConDeclField' (see 'reparenTypePrec')
-reparenConDeclField :: (XRecCond a) => ConDeclField a -> ConDeclField a
+reparenConDeclField :: (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XRec a (HsType a)),
+  WFT (Anno (HsTyVarBndr Specificity a)),
+  WFT (XRec a (HsTyVarBndr Specificity a)),
+  WFT (Anno (HsTyVarBndr () a)),
+  WFT (XRec a (HsTyVarBndr () a)),
+  WFT (Anno (HsType a)),
+  WFT (Anno [XRec a (HsType a)]),
+  WFT (XRec a [XRec a (HsType a)]),
+  WFT (Anno (ConDeclField a)),
+  WFT (XRec a (ConDeclField a)),
+  WFT (XParTy a),
+#endif
+  XRecCond a) => ConDeclField a -> ConDeclField a
 reparenConDeclField (ConDeclField x n t d) = ConDeclField x n (reparenLType t) d
 reparenConDeclField c@XConDeclField{} = c
 

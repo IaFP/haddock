@@ -8,6 +8,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, DataKinds #-}
+#endif
 
 -----------------------------------------------------------------------------
 -- |
@@ -54,6 +57,9 @@ import GHC.Driver.Session (Language)
 import qualified GHC.LanguageExtensions as LangExt
 import GHC.Types.Name.Occurrence
 import GHC.Utils.Outputable
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (WFT)
+#endif
 
 -----------------------------------------------------------------------------
 -- * Convenient synonyms
@@ -389,7 +395,14 @@ data InstType name
   | TypeInst  (Maybe (HsType name)) -- ^ Body (right-hand side)
   | DataInst (TyClDecl name)        -- ^ Data constructors
 
-instance (OutputableBndrId p)
+instance (
+#if MIN_VERSION_base(4,16,0)
+  WFT (XOverLit (GhcPass p)),
+  WFT (XOverLit (GhcPass (NoGhcTcPass p))),
+  WFT (Anno (IdGhcP p)),
+  WFT (Anno (IdGhcP (NoGhcTcPass p))),
+#endif
+  OutputableBndrId p)
          => Outputable (InstType (GhcPass p)) where
   ppr (ClassInst { .. }) = text "ClassInst"
       <+> ppr clsiCtx
@@ -725,9 +738,10 @@ type instance Anno (HsDecl DocNameI)                   = SrcSpanAnnA
 type instance Anno (FamilyResultSig DocNameI)          = SrcAnn NoEpAnns
 type instance Anno (HsOuterTyVarBndrs Specificity DocNameI) = SrcSpanAnnA
 type instance Anno (HsSigType DocNameI)                     = SrcSpanAnnA
+type instance Anno (Pat DocNameI)                     = SrcSpanAnnA
 
 type XRecCond a
-  = ( XParTy a           ~ EpAnn AnnParen
+  = ( XParTy a  ~ EpAnn AnnParen
     , NoGhcTc a ~ a
     , MapXRec a
     , UnXRec a

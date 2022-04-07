@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 903
+{-# LANGUAGE QuantifiedConstraints, ExplicitNamespaces, TypeOperators, TypeFamilies #-}
+#endif
 {-# LANGUAGE ExplicitForAll    #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
@@ -50,6 +54,9 @@ import Data.Int
 import Data.Word
 import Data.List (intersperse)
 import Data.Monoid
+#if MIN_VERSION_base(4,16,0)
+import GHC.Types (type(@))
+#endif
 
 import GHC.Natural
 
@@ -261,6 +268,9 @@ type Success a f r = a -> f r
 
 newtype Parser a = Parser {
       runParser :: forall f r.
+#if MIN_VERSION_base(4,16,0)
+                   f @ r => 
+#endif
                    JSONPath
                 -> Failure f r
                 -> Success a f r
