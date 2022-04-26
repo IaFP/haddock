@@ -105,7 +105,7 @@ newtype
 -- over the Ghc specific clarifies where side effects happen.
 newtype
 #if MIN_VERSION_base(4,16,0)
-  (m @ a, m @ (a, [ErrMsg])) =>
+  (m @ a, m @ (a, [ErrMsg]), m @ Maybe TyThing) =>
 #endif
    IfM m a = IfM { unIfM :: ReaderT (IfEnv m) (WriterT [ErrMsg] m) a }
 
