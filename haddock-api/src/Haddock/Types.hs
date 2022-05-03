@@ -741,6 +741,8 @@ type instance Anno (FamilyResultSig DocNameI)          = SrcAnn NoEpAnns
 type instance Anno (HsOuterTyVarBndrs Specificity DocNameI) = SrcSpanAnnA
 type instance Anno (HsSigType DocNameI)                     = SrcSpanAnnA
 type instance Anno (Pat DocNameI)                     = SrcSpanAnnA
+type instance Anno (HsBindLR DocNameI DocNameI)       = SrcSpanAnnA
+type instance Anno (HsDerivingClause DocNameI)        = SrcSpanAnnA
 
 type XRecCond a
   = ( XParTy a  ~ EpAnn AnnParen

@@ -73,10 +73,18 @@ isNameSym = isSymOcc . nameOccName
 --   foo, bar :: Types..
 -- but only one of the names is exported and we have to change the
 -- type signature to only include the exported names.
-filterLSigNames :: (IdP (GhcPass p) -> Bool) -> LSig (GhcPass p) -> Maybe (LSig (GhcPass p))
+filterLSigNames ::
+#if MIN_VERSION_base(4,16,0)
+  WFT (Anno (IdGhcP p)) =>
+#endif
+  (IdP (GhcPass p) -> Bool) -> LSig (GhcPass p) -> Maybe (LSig (GhcPass p))
 filterLSigNames p (L loc sig) = L loc <$> (filterSigNames p sig)
 
-filterSigNames :: (IdP (GhcPass p) -> Bool) -> Sig (GhcPass p) -> Maybe (Sig (GhcPass p))
+filterSigNames ::
+#if MIN_VERSION_base(4,16,0)
+  WFT (Anno (IdGhcP p)) =>
+#endif
+  (IdP (GhcPass p) -> Bool) -> Sig (GhcPass p) -> Maybe (Sig (GhcPass p))
 filterSigNames p orig@(SpecSig _ n _ _)          = ifTrueJust (p $ unLoc n) orig
 filterSigNames p orig@(InlineSig _ n _)          = ifTrueJust (p $ unLoc n) orig
 filterSigNames p (FixSig _ (FixitySig _ ns ty)) =
@@ -356,6 +364,8 @@ reparenTypePrec :: forall a. (
   WFT (Anno (ConDeclField a)),
   WFT (XRec a (ConDeclField a)),
   WFT (XParTy a),
+  WFT (XConDeclField a),
+  WFT (XRec a (FieldOcc a)),
 #endif
   XRecCond a)
                 => Precedence -> HsType a -> HsType a
@@ -427,6 +437,8 @@ reparenType :: (
   WFT (Anno (ConDeclField a)),
   WFT (XRec a (ConDeclField a)),
   WFT (XParTy a),
+  WFT (XConDeclField a),
+  WFT (XRec a (FieldOcc a)),
 #endif
   XRecCond a) => HsType a -> HsType a
 reparenType = reparenTypePrec PREC_TOP
@@ -445,6 +457,8 @@ reparenLType :: forall a. (
   WFT (Anno (ConDeclField a)),
   WFT (XRec a (ConDeclField a)),
   WFT (XParTy a),
+  WFT (XConDeclField a),
+  WFT (XRec a (FieldOcc a)),
 #endif
   XRecCond a) => LHsType a -> LHsType a
 reparenLType = mapXRec @a reparenType
@@ -463,6 +477,8 @@ reparenSigType :: forall a. (
   WFT (Anno (ConDeclField a)),
   WFT (XRec a (ConDeclField a)),
   WFT (XParTy a),
+  WFT (XConDeclField a),
+  WFT (XRec a (FieldOcc a)),
 #endif
   XRecCond a )
                => HsSigType a -> HsSigType a
@@ -486,6 +502,8 @@ reparenOuterTyVarBndrs :: forall flag a. (
   WFT (Anno (ConDeclField a)),
   WFT (XRec a (ConDeclField a)),
   WFT (XParTy a),
+  WFT (XConDeclField a),
+  WFT (XRec a (FieldOcc a)),
 #endif
   XRecCond a )
                        => HsOuterTyVarBndrs flag a -> HsOuterTyVarBndrs flag a
@@ -508,6 +526,8 @@ reparenHsForAllTelescope :: forall a. (
   WFT (Anno (ConDeclField a)),
   WFT (XRec a (ConDeclField a)),
   WFT (XParTy a),
+  WFT (XConDeclField a),
+  WFT (XRec a (FieldOcc a)),
 #endif
   XRecCond a )
                          => HsForAllTelescope a -> HsForAllTelescope a
@@ -531,6 +551,8 @@ reparenTyVar :: (
   WFT (Anno (ConDeclField a)),
   WFT (XRec a (ConDeclField a)),
   WFT (XParTy a),
+  WFT (XConDeclField a),
+  WFT (XRec a (FieldOcc a)),
 #endif
   XRecCond a) => HsTyVarBndr flag a -> HsTyVarBndr flag a
 reparenTyVar (UserTyVar x flag n) = UserTyVar x flag n
@@ -551,6 +573,8 @@ reparenConDeclField :: (
   WFT (Anno (ConDeclField a)),
   WFT (XRec a (ConDeclField a)),
   WFT (XParTy a),
+  WFT (XConDeclField a),
+  WFT (XRec a (FieldOcc a)),
 #endif
   XRecCond a) => ConDeclField a -> ConDeclField a
 reparenConDeclField (ConDeclField x n t d) = ConDeclField x n (reparenLType t) d
