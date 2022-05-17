@@ -134,6 +134,7 @@ newtype RnM a =
       }
 
 instance Monad RnM where
+  return a = RnM (const (a, id))
   m >>= k = RnM $ \lkp -> let (a, out1) = unRn m lkp
                               (b, out2) = unRn (k a) lkp
                           in (b, out1 . out2)
